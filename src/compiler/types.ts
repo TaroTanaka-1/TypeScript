@@ -1,8 +1,60 @@
+//TODO: this belongs somewhere else... its own file?
+interface Map<K, V> {
+    clear(): void;
+    delete(key: K): boolean;
+    forEach(callbackfn: (value: V, index: K, map: Map<K, V>) => void, thisArg?: any): void;
+    get(key: K): V | undefined;
+    has(key: K): boolean;
+    set(key: K, value?: V): this;
+    readonly size: number;
+}
+interface MapConstructor {
+    new (): Map<any, any>;
+    new <K, V>(entries?: [K, V][]): Map<K, V>;
+    //I added this
+    new <K, V>(entries: Map<K, V>): Map<K, V>;
+    readonly prototype: Map<any, any>;
+}
+declare var Map: MapConstructor;
+
 
 namespace ts {
-    export interface Map<T> {
+    //move
+    export function getOrUpdateMap<K, V>(map: Map<K, V>, key: K, getValue: () => V): V {
+        const value = map.get(key);
+        if (value === undefined) {
+            const value = getValue();
+            map.set(key, value);
+            return value;
+        }
+        else {
+            return value;
+        }
+    }
+    export function singletonMap<K, V>(key: K, value: V): Map<K, V> {
+        return new Map([[key, value]]);
+    }
+    export function cloneMap<K, V>(map: Map<K, V>): Map<K, V> {
+        return new Map(map);
+    }
+
+
+    //TODO: eventually want to kill all uses of this
+    export interface OldMap<T> {
         [index: string]: T;
     }
+
+    //TODO: should probably have a Map.ts file...
+
+
+
+
+
+
+
+
+
+
 
     // branded string type used to store absolute, normalized and canonicalized paths
     // arbitrary file name can be converted to Path via toPath function
@@ -1630,7 +1682,7 @@ namespace ts {
 
         // this map is used by transpiler to supply alternative names for dependencies (i.e. in case of bundling)
         /* @internal */
-        renamedDependencies?: Map<string>;
+        renamedDependencies?: OldMap<string>;
 
         /**
          * lib.d.ts should have a reference comment like
@@ -1650,7 +1702,7 @@ namespace ts {
         // The first node that causes this file to be a CommonJS module
         /* @internal */ commonJsModuleIndicator: Node;
 
-        /* @internal */ identifiers: Map<string>;
+        /* @internal */ identifiers: OldMap<string>;
         /* @internal */ nodeCount: number;
         /* @internal */ identifierCount: number;
         /* @internal */ symbolCount: number;
@@ -1665,12 +1717,12 @@ namespace ts {
         // Stores a line map for the file.
         // This field should never be used directly to obtain line map, use getLineMap function instead.
         /* @internal */ lineMap: number[];
-        /* @internal */ classifiableNames?: Map<string>;
+        /* @internal */ classifiableNames?: OldMap<string>;
         // Stores a mapping 'external module reference text' -> 'resolved file name' | undefined
         // It is used to resolve module names in the checker.
         // Content of this field should never be used directly - use getResolvedModuleFileName/setResolvedModuleFileName functions instead
-        /* @internal */ resolvedModules: Map<ResolvedModule>;
-        /* @internal */ resolvedTypeReferenceDirectiveNames: Map<ResolvedTypeReferenceDirective>;
+        /* @internal */ resolvedModules: OldMap<ResolvedModule>;
+        /* @internal */ resolvedTypeReferenceDirectiveNames: OldMap<ResolvedTypeReferenceDirective>;
         /* @internal */ imports: LiteralExpression[];
         /* @internal */ moduleAugmentations: LiteralExpression[];
         /* @internal */ patternAmbientModules?: PatternAmbientModule[];
@@ -1749,7 +1801,7 @@ namespace ts {
         // language service).
         /* @internal */ getDiagnosticsProducingTypeChecker(): TypeChecker;
 
-        /* @internal */ getClassifiableNames(): Map<string>;
+        /* @internal */ getClassifiableNames(): OldMap<string>;
 
         /* @internal */ getNodeCount(): number;
         /* @internal */ getIdentifierCount(): number;
@@ -1757,7 +1809,7 @@ namespace ts {
         /* @internal */ getTypeCount(): number;
 
         /* @internal */ getFileProcessingDiagnostics(): DiagnosticCollection;
-        /* @internal */ getResolvedTypeReferenceDirectives(): Map<ResolvedTypeReferenceDirective>;
+        /* @internal */ getResolvedTypeReferenceDirectives(): OldMap<ResolvedTypeReferenceDirective>;
         // For testing purposes only.
         /* @internal */ structureIsReused?: boolean;
     }
@@ -1818,7 +1870,7 @@ namespace ts {
 
         getSourceFiles(): SourceFile[];
         getSourceFile(fileName: string): SourceFile;
-        getResolvedTypeReferenceDirectives(): Map<ResolvedTypeReferenceDirective>;
+        getResolvedTypeReferenceDirectives(): OldMap<ResolvedTypeReferenceDirective>;
     }
 
     export interface TypeChecker {
@@ -2146,7 +2198,7 @@ namespace ts {
         declaredType?: Type;                // Type of class, interface, enum, type alias, or type parameter
         typeParameters?: TypeParameter[];   // Type parameters of type alias (undefined if non-generic)
         inferredClassType?: Type;           // Type of an inferred ES5 class
-        instantiations?: Map<Type>;         // Instantiations of generic type alias (undefined if non-generic)
+        instantiations?: OldMap<Type>;         // Instantiations of generic type alias (undefined if non-generic)
         mapper?: TypeMapper;                // Type mapper for instantiation alias
         referenced?: boolean;               // True if alias symbol has been referenced as a value
         containingType?: UnionOrIntersectionType; // Containing union or intersection type for synthetic property
@@ -2160,9 +2212,11 @@ namespace ts {
     /* @internal */
     export interface TransientSymbol extends Symbol, SymbolLinks { }
 
-    export interface SymbolTable {
-        [index: string]: Symbol;
-    }
+
+    //export interface SymbolTable {
+    //    [index: string]: Symbol;
+    //}
+    export type SymbolTable = Map<string, Symbol>;
 
     /** Represents a "prefix*suffix" pattern. */
     /* @internal */
@@ -2307,7 +2361,7 @@ namespace ts {
 
     // Enum types (TypeFlags.Enum)
     export interface EnumType extends Type {
-        memberTypes: Map<EnumLiteralType>;
+        memberTypes: OldMap<EnumLiteralType>;
     }
 
     // Enum types (TypeFlags.EnumLiteral)
@@ -2354,7 +2408,7 @@ namespace ts {
     // Generic class and interface types
     export interface GenericType extends InterfaceType, TypeReference {
         /* @internal */
-        instantiations: Map<TypeReference>;   // Generic instantiation cache
+        instantiations: OldMap<TypeReference>;   // Generic instantiation cache
     }
 
     export interface TupleType extends ObjectType {
@@ -2545,7 +2599,7 @@ namespace ts {
     }
 
     export type RootPaths = string[];
-    export type PathSubstitutions = Map<string[]>;
+    export type PathSubstitutions = OldMap<string[]>;
     export type TsConfigOnlyOptions = RootPaths | PathSubstitutions;
 
     export type CompilerOptionsValue = string | number | boolean | (string | number)[] | TsConfigOnlyOptions;
@@ -2638,7 +2692,7 @@ namespace ts {
         fileNames: string[];                            // The file names that belong to the same project.
         projectRootPath: string;                        // The path to the project root directory
         safeListPath: string;                           // The path used to retrieve the safe list
-        packageNameToTypingLocation: Map<string>;       // The map of package names to their cached typing locations
+        packageNameToTypingLocation: OldMap<string>;       // The map of package names to their cached typing locations
         typingOptions: TypingOptions;                   // Used to customize the typing inference process
         compilerOptions: CompilerOptions;               // Used as a source for typing inference
     }
@@ -2705,7 +2759,7 @@ namespace ts {
         fileNames: string[];
         raw?: any;
         errors: Diagnostic[];
-        wildcardDirectories?: Map<WatchDirectoryFlags>;
+        wildcardDirectories?: OldMap<WatchDirectoryFlags>;
     }
 
     export const enum WatchDirectoryFlags {
@@ -2715,13 +2769,13 @@ namespace ts {
 
     export interface ExpandResult {
         fileNames: string[];
-        wildcardDirectories: Map<WatchDirectoryFlags>;
+        wildcardDirectories: OldMap<WatchDirectoryFlags>;
     }
 
     /* @internal */
     export interface CommandLineOptionBase {
         name: string;
-        type: "string" | "number" | "boolean" | "object" | "list" | Map<number | string>;    // a value of a primitive type, or an object literal mapping named values to actual values
+        type: "string" | "number" | "boolean" | "object" | "list" | OldMap<number | string>;    // a value of a primitive type, or an object literal mapping named values to actual values
         isFilePath?: boolean;                                   // True if option value is a path or fileName
         shortName?: string;                                     // A short mnemonic for convenience - for instance, 'h' can be used in place of 'help'
         description?: DiagnosticMessage;                        // The message describing what the command line switch does
@@ -2737,7 +2791,7 @@ namespace ts {
 
     /* @internal */
     export interface CommandLineOptionOfCustomType extends CommandLineOptionBase {
-        type: Map<number | string>;             // an object literal mapping named values to actual values
+        type: OldMap<number | string>;             // an object literal mapping named values to actual values
     }
 
     /* @internal */
